@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
+import AdminSetup from "./pages/AdminSetup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/ctrl-access" element={<AdminLogin />} />
           <Route path="/ctrl-panel" element={<AdminPanel />} />
+          <Route path="/ctrl-setup" element={<AdminSetup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
