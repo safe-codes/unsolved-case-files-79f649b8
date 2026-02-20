@@ -136,6 +136,43 @@
   .animate-unlock {
     animation: unlock 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
+
+  /* Case file paper texture */
+  .case-file-paper {
+    background: linear-gradient(
+      170deg,
+      hsl(35 25% 14%) 0%,
+      hsl(30 20% 11%) 40%,
+      hsl(25 18% 10%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 hsl(38 30% 25% / 0.15),
+      0 20px 60px hsl(0 0% 0% / 0.5);
+  }
+
+  /* Polaroid evidence photo */
+  .polaroid-frame {
+    background: hsl(40 20% 92%);
+    padding: 10px 10px 32px 10px;
+    border-radius: 2px;
+    box-shadow:
+      0 4px 12px hsl(0 0% 0% / 0.3),
+      0 1px 3px hsl(0 0% 0% / 0.2);
+    transform: rotate(-0.8deg);
+    position: relative;
+  }
+
+  .polaroid-frame::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    width: 28px;
+    height: 10px;
+    background: hsl(38 40% 60% / 0.3);
+    border-radius: 1px;
+    transform: rotate(3deg);
+  }
 }
 
 @keyframes pulse-slow {
