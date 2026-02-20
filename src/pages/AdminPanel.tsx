@@ -90,17 +90,23 @@ export default function AdminPanel() {
   }
 
   async function updateSitePassword() {
-    await supabase.from('site_config').update({ site_password: sitePassword }).neq('id', '');
+    const { data: config } = await supabase.from('site_config').select('id').limit(1).single();
+    if (config) await supabase.from('site_config').update({ site_password: sitePassword }).eq('id', config.id);
   }
 
   async function uploadMusic(file: File) {
+    setUploading(true);
     const path = `bg-music-${Date.now()}.${file.name.split('.').pop()}`;
     const { error } = await supabase.storage.from('music').upload(path, file);
     if (!error) {
-      const { data } = supabase.storage.from('music').getPublicUrl(path);
-      await supabase.from('site_config').update({ music_url: data.publicUrl }).neq('id', '');
-      setMusicUrl(data.publicUrl);
+      const { data: urlData } = supabase.storage.from('music').getPublicUrl(path);
+      const { data: config } = await supabase.from('site_config').select('id').limit(1).single();
+      if (config) {
+        await supabase.from('site_config').update({ music_url: urlData.publicUrl }).eq('id', config.id);
+        setMusicUrl(urlData.publicUrl);
+      }
     }
+    setUploading(false);
   }
 
   async function handleLogout() {
@@ -260,24 +266,34 @@ export default function AdminPanel() {
             </div>
 
             {/* Background Music */}
-            <div className="glass-card rounded-xl p-6 space-y-3">
+            <div className="glass-card rounded-xl p-6 space-y-4">
               <h3 className="text-sm font-mono text-muted-foreground tracking-wider uppercase flex items-center gap-2">
                 <Music className="w-4 h-4" /> Background Music
               </h3>
               {musicUrl && (
-                <div className="text-xs text-muted-foreground font-mono truncate">
-                  Current: {musicUrl.split('/').pop()}
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground font-mono truncate">
+                    Current: {decodeURIComponent(musicUrl.split('/').pop() || '')}
+                  </div>
+                  <audio controls src={musicUrl} className="w-full h-10" />
                 </div>
               )}
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f) uploadMusic(f);
-                }}
-                className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-secondary file:text-secondary-foreground file:cursor-pointer"
-              />
+              <div className="space-y-2">
+                <label className="block text-xs text-muted-foreground">
+                  Upload MP3, WAV, OGG, or any audio file
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept=".mp3,.wav,.ogg,.m4a,.aac,audio/*"
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) uploadMusic(f);
+                    }}
+                    className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-secondary file:text-secondary-foreground file:cursor-pointer"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
