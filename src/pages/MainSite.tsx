@@ -74,14 +74,14 @@ export default function MainSite() {
               <button
                 key={file.id}
                 onClick={() => setSelectedFile(file)}
-                className="group relative flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-[0_0_24px_hsl(38_70%_50%/0.1)] transition-all duration-300 cursor-pointer"
+                className="evidence-folder group relative flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-[0_0_24px_hsl(38_70%_50%/0.12)] transition-all duration-300 cursor-pointer overflow-hidden"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 {/* Folder icon */}
                 <div className="relative w-14 h-14 sm:w-16 sm:h-16 mb-3 flex items-center justify-center">
-                  <FolderOpen className="w-12 h-12 sm:w-14 sm:h-14 text-primary/70 group-hover:text-primary transition-colors duration-300 drop-shadow-md" strokeWidth={1.2} />
+                  <FolderOpen className="w-12 h-12 sm:w-14 sm:h-14 text-primary/70 group-hover:text-primary transition-all duration-300 drop-shadow-md group-hover:drop-shadow-lg group-hover:scale-105" strokeWidth={1.2} />
                   <div className="absolute inset-0 flex items-center justify-center pt-1.5">
-                    <span className="text-primary-foreground/80">
+                    <span className="text-primary-foreground/80 group-hover:text-primary-foreground transition-colors">
                       {fileTypeIcons[file.file_type] || <File className="w-4 h-4" />}
                     </span>
                   </div>
@@ -93,7 +93,8 @@ export default function MainSite() {
                 </h3>
 
                 {/* Date */}
-                <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono mt-1.5 opacity-60">
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground font-mono mt-1.5 opacity-60 flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5" />
                   {new Date(file.created_at).toLocaleDateString()}
                 </span>
 
@@ -101,6 +102,9 @@ export default function MainSite() {
                 <span className="mt-2 text-[8px] sm:text-[9px] font-mono uppercase tracking-widest text-primary/60 bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
                   {fileTypeLabels[file.file_type] || file.file_type}
                 </span>
+
+                {/* Hover glow overlay */}
+                <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/[0.02] transition-colors duration-500 pointer-events-none" />
               </button>
             ))}
           </div>
@@ -120,12 +124,18 @@ export default function MainSite() {
 
 function CaseFileModal({ file, onClose }: { file: CaseFile; onClose: () => void }) {
   return (
-    <div className="case-file-paper rounded-xl overflow-hidden">
+    <div className="case-file-paper rounded-xl overflow-hidden relative">
+      {/* CLASSIFIED stamp */}
+      <div className="classified-stamp" aria-hidden="true">
+        Classified
+      </div>
+
       {/* Paper-textured header */}
-      <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-primary/10">
+      <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-primary/10 relative z-[1]">
         {/* Classification stamp */}
         <div className="flex items-center justify-between mb-4">
-          <span className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.2em] text-destructive/70 border border-destructive/30 px-2 py-0.5 rounded">
+          <span className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.2em] text-destructive/70 border border-destructive/30 px-2 py-0.5 rounded flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive/60 animate-pulse-slow" />
             Evidence File
           </span>
           <span className="font-mono text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
@@ -149,13 +159,17 @@ function CaseFileModal({ file, onClose }: { file: CaseFile; onClose: () => void 
       </div>
 
       {/* Content body */}
-      <div className="px-5 sm:px-8 py-5 sm:py-6 space-y-5">
+      <div className="px-5 sm:px-8 py-5 sm:py-6 space-y-5 relative z-[1]">
         {/* Description */}
         {file.description && (
           <div className="space-y-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">Description</p>
             <p className="font-mono text-xs sm:text-sm text-foreground/80 leading-relaxed">{file.description}</p>
           </div>
+        )}
+
+        {file.description && (file.text_content || file.file_url) && (
+          <hr className="evidence-divider" />
         )}
 
         {/* Text content */}
@@ -174,12 +188,17 @@ function CaseFileModal({ file, onClose }: { file: CaseFile; onClose: () => void 
         {file.file_url && file.file_type === 'image' && (
           <div className="space-y-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">Photographic Evidence</p>
-            <div className="polaroid-frame">
-              <img
-                src={file.file_url}
-                alt={file.title}
-                className="w-full max-h-72 sm:max-h-96 object-cover"
-              />
+            <div className="flex justify-center py-2">
+              <div className="polaroid-frame inline-block">
+                <img
+                  src={file.file_url}
+                  alt={file.title}
+                  className="w-full max-h-72 sm:max-h-96 object-cover"
+                />
+                <p className="polaroid-caption mt-2">
+                  EV-{file.id.slice(0, 6).toUpperCase()} • {new Date(file.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -219,7 +238,7 @@ function CaseFileModal({ file, onClose }: { file: CaseFile; onClose: () => void 
       </div>
 
       {/* Footer stamp */}
-      <div className="px-5 sm:px-8 pb-5 sm:pb-6">
+      <div className="px-5 sm:px-8 pb-5 sm:pb-6 relative z-[1]">
         <div className="border-t border-border/30 pt-3 flex items-center justify-between">
           <span className="font-mono text-[9px] text-muted-foreground/40 uppercase tracking-widest">
             Case #{file.id.slice(0, 8).toUpperCase()}
