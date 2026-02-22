@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { FileText, Image, Video, Music, File, BookOpen, FolderOpen, Calendar } from 'lucide-react';
@@ -32,6 +32,9 @@ export default function MainSite() {
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<CaseFile | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useAudioPlayer(musicUrl);
 
@@ -54,10 +57,48 @@ export default function MainSite() {
     return c;
   }, [caseFiles]);
 
-  const filteredFiles = useMemo(
-    () => activeFilter === 'all' ? caseFiles : caseFiles.filter((f) => f.file_type === activeFilter),
-    [caseFiles, activeFilter],
-  );
+  const filteredFiles = useMemo(() => {
+    let files = activeFilter === 'all' ? caseFiles : caseFiles.filter((f) => f.file_type === activeFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      files = files.filter((f) =>
+        f.title.toLowerCase().includes(q) ||
+        f.description?.toLowerCase().includes(q) ||
+        f.text_content?.toLowerCase().includes(q)
+      );
+    }
+    return files;
+  }, [caseFiles, activeFilter, searchQuery]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!filteredFiles.length) return;
+    const cols = window.innerWidth >= 768 ? 4 : window.innerWidth >= 640 ? 3 : 2;
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.min(i + 1, filteredFiles.length - 1));
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.min(i + cols, filteredFiles.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex((i) => Math.max(i - cols, 0));
+    } else if (e.key === 'Enter' && focusedIndex >= 0) {
+      e.preventDefault();
+      setSelectedFile(filteredFiles[focusedIndex]);
+    }
+  }, [filteredFiles, focusedIndex]);
+
+  // Focus the active button when focusedIndex changes
+  useEffect(() => {
+    if (focusedIndex >= 0 && gridRef.current) {
+      const buttons = gridRef.current.querySelectorAll('button');
+      buttons[focusedIndex]?.focus();
+    }
+  }, [focusedIndex]);
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -108,6 +149,8 @@ export default function MainSite() {
               onFilterChange={setActiveFilter}
               counts={counts}
               totalCount={caseFiles.length}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
             />
 
             {filteredFiles.length === 0 ? (
@@ -115,12 +158,21 @@ export default function MainSite() {
                 <p className="text-muted-foreground font-mono text-sm">No files match this filter</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 animate-fade-in">
+              <div
+                ref={gridRef}
+                onKeyDown={handleKeyDown}
+                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 animate-fade-in"
+                role="grid"
+                tabIndex={0}
+              >
                 {filteredFiles.map((file, i) => (
                   <button
                     key={file.id}
                     onClick={() => setSelectedFile(file)}
-                    className="evidence-folder group relative flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border border-border/60 bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-[0_0_24px_hsl(38_70%_50%/0.12)] transition-all duration-300 cursor-pointer overflow-hidden"
+                    onFocus={() => setFocusedIndex(i)}
+                    className={`evidence-folder group relative flex flex-col items-center text-center p-4 sm:p-5 rounded-xl border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-[0_0_24px_hsl(38_70%_50%/0.12)] transition-all duration-300 cursor-pointer overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/40 ${
+                      focusedIndex === i ? 'border-primary/40 ring-1 ring-primary/30' : 'border-border/60'
+                    }`}
                     style={{ animationDelay: `${i * 60}ms` }}
                   >
                     <div className="relative w-14 h-14 sm:w-16 sm:h-16 mb-3 flex items-center justify-center">
