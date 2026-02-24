@@ -1,7 +1,14 @@
 import { Calendar, Tag, File } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import PhotoStack from './PhotoStack';
 
 type CaseFile = Tables<'case_files'>;
+
+interface CaseFilePhoto {
+  id: string;
+  photo_url: string;
+  display_order: number;
+}
 
 const fileTypeLabels: Record<string, string> = {
   image: 'PHOTOGRAPH',
@@ -11,7 +18,7 @@ const fileTypeLabels: Record<string, string> = {
   text: 'TEXT FILE',
 };
 
-export default function CaseFileModal({ file }: { file: CaseFile }) {
+export default function CaseFileModal({ file, photos = [] }: { file: CaseFile; photos?: CaseFilePhoto[] }) {
   return (
     <div className="case-file-paper rounded-xl overflow-hidden relative">
       {/* CLASSIFIED stamp */}
@@ -68,7 +75,13 @@ export default function CaseFileModal({ file }: { file: CaseFile }) {
           </div>
         )}
 
-        {file.file_url && file.file_type === 'image' && (
+        {/* Photos - stacked card display */}
+        {photos.length > 0 && (
+          <PhotoStack photos={photos} />
+        )}
+
+        {/* Single legacy image fallback */}
+        {file.file_url && file.file_type === 'image' && photos.length === 0 && (
           <div className="space-y-1.5">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">Photographic Evidence</p>
             <div className="flex justify-center py-2">
