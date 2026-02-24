@@ -62,6 +62,38 @@ export type Database = {
         }
         Relationships: []
       }
+      case_file_photos: {
+        Row: {
+          case_file_id: string
+          created_at: string
+          display_order: number
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          case_file_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          case_file_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_file_photos_case_file_id_fkey"
+            columns: ["case_file_id"]
+            isOneToOne: false
+            referencedRelation: "case_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_files: {
         Row: {
           created_at: string
