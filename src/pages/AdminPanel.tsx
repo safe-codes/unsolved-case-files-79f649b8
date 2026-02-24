@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Upload, Trash2, Music, Eye, Settings, FileText, Plus } from 'lucide-react';
+import { LogOut, Upload, Trash2, Music, Eye, Settings, FileText, Plus, Pencil, X, Check } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CaseFile = Tables<'case_files'>;
@@ -23,6 +23,13 @@ export default function AdminPanel() {
   const [newType, setNewType] = useState('text');
   const [newText, setNewText] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editText, setEditText] = useState('');
+  const [editType, setEditType] = useState('text');
 
   useEffect(() => {
     checkAdmin();
@@ -86,6 +93,30 @@ export default function AdminPanel() {
 
   async function deleteCase(id: string) {
     await supabase.from('case_files').delete().eq('id', id);
+    loadData();
+  }
+
+  function startEditing(file: CaseFile) {
+    setEditingId(file.id);
+    setEditTitle(file.title);
+    setEditDesc(file.description || '');
+    setEditText(file.text_content || '');
+    setEditType(file.file_type);
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+  }
+
+  async function saveEdit() {
+    if (!editingId || !editTitle.trim()) return;
+    await supabase.from('case_files').update({
+      title: editTitle.trim(),
+      description: editDesc.trim() || null,
+      text_content: editType === 'text' ? editText : undefined,
+      file_type: editType,
+    }).eq('id', editingId);
+    setEditingId(null);
     loadData();
   }
 
@@ -193,14 +224,48 @@ export default function AdminPanel() {
             {/* Existing cases */}
             <div className="space-y-2">
               {caseFiles.map(file => (
-                <div key={file.id} className="glass-card rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{file.title}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{file.file_type} · {new Date(file.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <button onClick={() => deleteCase(file.id)} className="text-muted-foreground hover:text-destructive transition-colors p-2">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div key={file.id} className="glass-card rounded-xl p-4">
+                  {editingId === file.id ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title" className="h-10 px-4 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        <select value={editType} onChange={e => setEditType(e.target.value)} className="h-10 px-4 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50">
+                          <option value="text">Text</option>
+                          <option value="image">Image</option>
+                          <option value="video">Video</option>
+                          <option value="audio">Audio</option>
+                          <option value="document">Document</option>
+                        </select>
+                      </div>
+                      <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description (optional)" className="w-full h-10 px-4 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                      {editType === 'text' && (
+                        <textarea value={editText} onChange={e => setEditText(e.target.value)} placeholder="Text content" rows={4} className="w-full px-4 py-3 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono" />
+                      )}
+                      <div className="flex gap-2">
+                        <button onClick={saveEdit} className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-all flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" /> Save
+                        </button>
+                        <button onClick={cancelEditing} className="h-9 px-4 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:brightness-110 transition-all flex items-center gap-1.5">
+                          <X className="w-3.5 h-3.5" /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{file.title}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{file.file_type} · {new Date(file.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => startEditing(file)} className="text-muted-foreground hover:text-primary transition-colors p-2">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deleteCase(file.id)} className="text-muted-foreground hover:text-destructive transition-colors p-2">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
