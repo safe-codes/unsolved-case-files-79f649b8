@@ -208,7 +208,7 @@ export default function MainSite() {
 
       {/* Modal */}
       <Dialog open={!!selectedFile} onOpenChange={(open) => !open && setSelectedFile(null)}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-primary/20 bg-transparent shadow-2xl gap-0">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-primary/20 bg-card shadow-2xl gap-0 [&>button]:z-10 [&>button]:text-foreground [&>button]:opacity-100 [&>button]:hover:opacity-70">
           <DialogTitle className="sr-only">{selectedFile?.title}</DialogTitle>
           {selectedFile && <CaseFileModal file={selectedFile} />}
         </DialogContent>
