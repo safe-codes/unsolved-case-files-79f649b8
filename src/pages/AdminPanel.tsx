@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Upload, Trash2, Music, Eye, Settings, FileText, Plus, Pencil, X, Check } from 'lucide-react';
+import { LogOut, Upload, Trash2, Music, Eye, Settings, FileText, Plus, Pencil, X, Check, ImagePlus } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CaseFile = Tables<'case_files'>;
 type AccessAttempt = Tables<'access_attempts'>;
 
+interface CaseFilePhoto {
+  id: string;
+  case_file_id: string;
+  photo_url: string;
+  display_order: number;
+}
+
 export default function AdminPanel() {
   const [tab, setTab] = useState<'cases' | 'attempts' | 'settings'>('cases');
   const [caseFiles, setCaseFiles] = useState<CaseFile[]>([]);
+  const [casePhotos, setCasePhotos] = useState<CaseFilePhoto[]>([]);
   const [attempts, setAttempts] = useState<AccessAttempt[]>([]);
   const [sitePassword, setSitePassword] = useState('');
   const [musicUrl, setMusicUrl] = useState('');
@@ -23,6 +31,7 @@ export default function AdminPanel() {
   const [newType, setNewType] = useState('text');
   const [newText, setNewText] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -45,12 +54,14 @@ export default function AdminPanel() {
 
   async function loadData() {
     setLoading(true);
-    const [filesRes, attemptsRes, configRes] = await Promise.all([
+    const [filesRes, attemptsRes, configRes, photosRes] = await Promise.all([
       supabase.from('case_files').select('*').order('display_order'),
       supabase.from('access_attempts').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('site_config').select('*').limit(1).single(),
+      supabase.from('case_file_photos').select('*').order('display_order'),
     ]);
     setCaseFiles(filesRes.data || []);
+    setCasePhotos((photosRes.data as CaseFilePhoto[]) || []);
     setAttempts(attemptsRes.data || []);
     setSitePassword(configRes.data?.site_password || '');
     setMusicUrl(configRes.data?.music_url || '');
@@ -74,19 +85,38 @@ export default function AdminPanel() {
       }
     }
 
-    await supabase.from('case_files').insert({
+    const { data: inserted } = await supabase.from('case_files').insert({
       title: newTitle.trim(),
       description: newDesc.trim() || null,
       file_type: newType,
       file_url: fileUrl || null,
       text_content: newType === 'text' ? newText : null,
       display_order: caseFiles.length,
-    });
+    }).select('id').single();
+
+    // Upload photos if any
+    if (inserted && newPhotos.length > 0) {
+      const photoUploads = newPhotos.slice(0, 10).map(async (photo, i) => {
+        const ext = photo.name.split('.').pop();
+        const path = `photos/${inserted.id}/${Date.now()}-${i}.${ext}`;
+        const { error } = await supabase.storage.from('case-files').upload(path, photo);
+        if (!error) {
+          const { data: urlData } = supabase.storage.from('case-files').getPublicUrl(path);
+          return { case_file_id: inserted.id, photo_url: urlData.publicUrl, display_order: i };
+        }
+        return null;
+      });
+      const results = (await Promise.all(photoUploads)).filter(Boolean);
+      if (results.length > 0) {
+        await supabase.from('case_file_photos').insert(results as any[]);
+      }
+    }
 
     setNewTitle('');
     setNewDesc('');
     setNewText('');
     setNewFile(null);
+    setNewPhotos([]);
     setUploading(false);
     loadData();
   }
@@ -119,7 +149,33 @@ export default function AdminPanel() {
     setEditingId(null);
     loadData();
   }
+  async function addPhotosToCase(caseId: string, files: FileList) {
+    const existingCount = casePhotos.filter(p => p.case_file_id === caseId).length;
+    const allowed = Math.min(files.length, 10 - existingCount);
+    if (allowed <= 0) return;
+    setUploading(true);
+    const uploads = Array.from(files).slice(0, allowed).map(async (file, i) => {
+      const ext = file.name.split('.').pop();
+      const path = `photos/${caseId}/${Date.now()}-${i}.${ext}`;
+      const { error } = await supabase.storage.from('case-files').upload(path, file);
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('case-files').getPublicUrl(path);
+        return { case_file_id: caseId, photo_url: urlData.publicUrl, display_order: existingCount + i };
+      }
+      return null;
+    });
+    const results = (await Promise.all(uploads)).filter(Boolean);
+    if (results.length > 0) {
+      await supabase.from('case_file_photos').insert(results as any[]);
+    }
+    setUploading(false);
+    loadData();
+  }
 
+  async function deletePhoto(photoId: string) {
+    await supabase.from('case_file_photos').delete().eq('id', photoId);
+    loadData();
+  }
   async function updateSitePassword() {
     const { data: config } = await supabase.from('site_config').select('id').limit(1).single();
     if (config) await supabase.from('site_config').update({ site_password: sitePassword }).eq('id', config.id);
@@ -215,6 +271,39 @@ export default function AdminPanel() {
               ) : (
                 <input type="file" onChange={e => setNewFile(e.target.files?.[0] || null)} className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-secondary file:text-secondary-foreground file:cursor-pointer" />
               )}
+
+              {/* Multi-photo upload */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground font-mono uppercase tracking-wider">
+                  <ImagePlus className="w-3.5 h-3.5" /> Photos (up to 10)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={e => {
+                    const files = Array.from(e.target.files || []).slice(0, 10);
+                    setNewPhotos(files);
+                  }}
+                  className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-secondary file:text-secondary-foreground file:cursor-pointer"
+                />
+                {newPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {newPhotos.map((f, i) => (
+                      <div key={i} className="relative">
+                        <img src={URL.createObjectURL(f)} alt="" className="w-16 h-16 object-cover rounded-lg border border-border" />
+                        <button
+                          type="button"
+                          onClick={() => setNewPhotos(prev => prev.filter((_, j) => j !== i))}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px]"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button type="submit" disabled={uploading || !newTitle.trim()} className="h-11 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all hover:brightness-110 disabled:opacity-40 flex items-center gap-2">
                 <Upload className="w-4 h-4" />
                 {uploading ? 'Uploading...' : 'Upload'}
@@ -251,12 +340,17 @@ export default function AdminPanel() {
                       </div>
                     </div>
                   ) : (
+                    <>
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">{file.title}</p>
                         <p className="text-xs text-muted-foreground font-mono">{file.file_type} · {new Date(file.created_at).toLocaleDateString()}</p>
                       </div>
                       <div className="flex items-center gap-1">
+                        <label className="text-muted-foreground hover:text-primary transition-colors p-2 cursor-pointer" title="Add photos">
+                          <ImagePlus className="w-4 h-4" />
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={e => e.target.files && addPhotosToCase(file.id, e.target.files)} />
+                        </label>
                         <button onClick={() => startEditing(file)} className="text-muted-foreground hover:text-primary transition-colors p-2">
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -265,6 +359,25 @@ export default function AdminPanel() {
                         </button>
                       </div>
                     </div>
+                    {casePhotos.filter(p => p.case_file_id === file.id).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/30">
+                        {casePhotos.filter(p => p.case_file_id === file.id).map(photo => (
+                          <div key={photo.id} className="relative group">
+                            <img src={photo.photo_url} alt="" className="w-14 h-14 object-cover rounded-lg border border-border" />
+                            <button
+                              onClick={() => deletePhoto(photo.id)}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <span className="self-center text-[10px] text-muted-foreground/50 font-mono">
+                          {casePhotos.filter(p => p.case_file_id === file.id).length}/10
+                        </span>
+                      </div>
+                    )}
+                    </>
                   )}
                 </div>
               ))}

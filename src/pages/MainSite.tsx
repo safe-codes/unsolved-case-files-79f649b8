@@ -10,6 +10,13 @@ import DustParticles from '@/components/case-files/DustParticles';
 
 type CaseFile = Tables<'case_files'>;
 
+interface CaseFilePhoto {
+  id: string;
+  case_file_id: string;
+  photo_url: string;
+  display_order: number;
+}
+
 const fileTypeIcons: Record<string, React.ReactNode> = {
   image: <Image className="w-5 h-5" />,
   video: <Video className="w-5 h-5" />,
@@ -28,6 +35,7 @@ const fileTypeLabels: Record<string, string> = {
 
 export default function MainSite() {
   const [caseFiles, setCaseFiles] = useState<CaseFile[]>([]);
+  const [photos, setPhotos] = useState<CaseFilePhoto[]>([]);
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<CaseFile | null>(null);
@@ -40,11 +48,13 @@ export default function MainSite() {
 
   useEffect(() => {
     async function load() {
-      const [filesRes, configRes] = await Promise.all([
+      const [filesRes, configRes, photosRes] = await Promise.all([
         supabase.from('case_files').select('*').order('display_order', { ascending: true }),
         supabase.from('site_config').select('music_url').limit(1).single(),
+        supabase.from('case_file_photos').select('*').order('display_order', { ascending: true }),
       ]);
       setCaseFiles(filesRes.data || []);
+      setPhotos((photosRes.data as CaseFilePhoto[]) || []);
       setMusicUrl(configRes.data?.music_url || null);
       setLoading(false);
     }
@@ -210,7 +220,7 @@ export default function MainSite() {
       <Dialog open={!!selectedFile} onOpenChange={(open) => !open && setSelectedFile(null)}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-primary/20 bg-card shadow-2xl gap-0 [&>button]:z-10 [&>button]:text-foreground [&>button]:opacity-100 [&>button]:hover:opacity-70">
           <DialogTitle className="sr-only">{selectedFile?.title}</DialogTitle>
-          {selectedFile && <CaseFileModal file={selectedFile} />}
+          {selectedFile && <CaseFileModal file={selectedFile} photos={photos.filter(p => p.case_file_id === selectedFile.id)} />}
         </DialogContent>
       </Dialog>
     </div>
