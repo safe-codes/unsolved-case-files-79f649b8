@@ -80,19 +80,9 @@ export default function CaseFileModal({ file, photos = [] }: { file: CaseFile; p
           <PhotoStack photos={photos} />
         )}
 
-        {/* Single legacy image fallback */}
+        {/* Single legacy image fallback — reuse PhotoStack viewer */}
         {file.file_url && file.file_type === 'image' && photos.length === 0 && (
-          <div className="space-y-1.5">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">Photographic Evidence</p>
-            <div className="flex justify-center py-2">
-              <div className="polaroid-frame inline-block">
-                <img src={file.file_url} alt={file.title} className="w-full max-h-72 sm:max-h-96 object-cover" />
-                <p className="polaroid-caption mt-2">
-                  EV-{file.id.slice(0, 6).toUpperCase()} • {new Date(file.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </div>
+          <PhotoStack photos={[{ id: file.id, photo_url: file.file_url, display_order: 0 }]} />
         )}
 
         {file.file_url && file.file_type === 'video' && (
