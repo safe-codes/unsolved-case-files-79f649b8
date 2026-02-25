@@ -29,7 +29,7 @@ export default function EvidenceFilterBar({ activeFilter, onFilterChange, counts
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search case files..."
-          className="w-full sm:w-72 h-9 pl-9 pr-3 bg-card/30 border border-border/40 rounded-lg font-mono text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:shadow-[0_0_12px_hsl(38_70%_50%/0.08)] transition-all"
+          className="w-full sm:w-72 h-9 pl-9 pr-3 bg-card/30 border border-border/40 rounded-lg font-mono text-[16px] sm:text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:shadow-[0_0_12px_hsl(38_70%_50%/0.08)] transition-all"
         />
       </div>
 
