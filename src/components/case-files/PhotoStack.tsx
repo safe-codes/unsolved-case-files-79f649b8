@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 
@@ -47,65 +48,68 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
         ))}
       </div>
 
-      {/* Full-screen viewer */}
-      <AnimatePresence>
-        {viewerIndex !== null && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeViewer}
-          >
-            {/* Close button */}
-            <button
-              className="absolute top-4 left-4 z-10 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+      {/* Full-screen viewer via portal to escape dialog clipping */}
+      {createPortal(
+        <AnimatePresence>
+          {viewerIndex !== null && (
+            <motion.div
+              className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={closeViewer}
-              aria-label="Close"
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Counter */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-xs text-muted-foreground">
-              {viewerIndex + 1} / {sorted.length}
-            </div>
-
-            {/* Image */}
-            <motion.img
-              key={sorted[viewerIndex].id}
-              src={sorted[viewerIndex].photo_url}
-              alt={`Evidence photo ${viewerIndex + 1}`}
-              className="max-w-[95vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              onClick={(e) => e.stopPropagation()}
-            />
-
-            {/* Navigation arrows */}
-            {viewerIndex > 0 && (
+              {/* Close button */}
               <button
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
-                onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                aria-label="Previous photo"
+                className="absolute top-4 left-4 z-10 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+                onClick={closeViewer}
+                aria-label="Close"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
-            )}
-            {viewerIndex < sorted.length - 1 && (
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
-                onClick={(e) => { e.stopPropagation(); goNext(); }}
-                aria-label="Next photo"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+              {/* Counter */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-xs text-muted-foreground">
+                {viewerIndex + 1} / {sorted.length}
+              </div>
+
+              {/* Image */}
+              <motion.img
+                key={sorted[viewerIndex].id}
+                src={sorted[viewerIndex].photo_url}
+                alt={`Evidence photo ${viewerIndex + 1}`}
+                className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {/* Navigation arrows */}
+              {viewerIndex > 0 && (
+                <button
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+                  onClick={(e) => { e.stopPropagation(); goPrev(); }}
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+              {viewerIndex < sorted.length - 1 && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+                  onClick={(e) => { e.stopPropagation(); goNext(); }}
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
