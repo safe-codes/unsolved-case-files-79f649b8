@@ -76,7 +76,7 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
               key={sorted[viewerIndex].id}
               src={sorted[viewerIndex].photo_url}
               alt={`Evidence photo ${viewerIndex + 1}`}
-              className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-[95vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
