@@ -61,15 +61,15 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
             >
               {/* Close button */}
               <button
-                className="absolute top-4 left-4 z-[110] p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
-                onClick={(e) => { e.stopPropagation(); closeViewer(); }}
+                className="absolute top-4 left-4 z-10 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+                onClick={closeViewer}
                 aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
 
               {/* Counter */}
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-xs text-muted-foreground pointer-events-none">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-xs text-muted-foreground">
                 {viewerIndex + 1} / {sorted.length}
               </div>
 
@@ -78,17 +78,18 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
                 key={sorted[viewerIndex].id}
                 src={sorted[viewerIndex].photo_url}
                 alt={`Evidence photo ${viewerIndex + 1}`}
-                className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg shadow-2xl pointer-events-none"
+                className="max-w-[90vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                onClick={(e) => e.stopPropagation()}
               />
 
               {/* Navigation arrows */}
               {viewerIndex > 0 && (
                 <button
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card hover:scale-110 transition-all"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
                   onClick={(e) => { e.stopPropagation(); goPrev(); }}
                   aria-label="Previous photo"
                 >
@@ -97,7 +98,7 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
               )}
               {viewerIndex < sorted.length - 1 && (
                 <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card hover:scale-110 transition-all"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
                   onClick={(e) => { e.stopPropagation(); goNext(); }}
                   aria-label="Next photo"
                 >
