@@ -59,7 +59,7 @@ export default function PhotoStack({ photos }: { photos: Photo[] }) {
           >
             {/* Close button */}
             <button
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
+              className="absolute top-4 left-4 z-10 p-2 rounded-full bg-card/80 border border-border/50 text-foreground hover:bg-card transition-colors"
               onClick={closeViewer}
               aria-label="Close"
             >
